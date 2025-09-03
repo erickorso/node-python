@@ -1,28 +1,31 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { Item, ContactRequest, ApiResponse, SaludoResponse, ContactResponse } from './types';
 
-// Configuración de Express
+// Express configuration
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware para permitir CORS
+// CORS middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
   next();
 });
 
-// Middleware para parsing JSON
+// JSON parsing middleware
 app.use(express.json());
 
-// Ruta principal
+// Serve static files from 'public' folder
+app.use(express.static('public'));
+
+// Main route
 app.get('/', (req: Request, res: Response) => {
   const response: ApiResponse = { 
-    mensaje: '¡Che, boludo! Tu API en TypeScript está funcionando en Vercel',
-    fecha: new Date().toLocaleDateString('es-AR'),
+    mensaje: 'Hello! Your TypeScript API is working on Vercel',
+    fecha: new Date().toLocaleDateString('en-US'),
     endpoints: [
       '/api/saludo',
-      '/api/saludo?nombre=TuNombre',
+      '/api/saludo?nombre=YourName',
       '/api/items',
       '/api/items/:id'
     ]
@@ -30,37 +33,37 @@ app.get('/', (req: Request, res: Response) => {
   res.json(response);
 });
 
-// Ruta de saludo personalizado
+// Personalized greeting route
 app.get('/api/saludo', (req: Request, res: Response) => {
-  const nombre = req.query.nombre as string || 'amigo';
+  const nombre = req.query.nombre as string || 'friend';
   const response: SaludoResponse = { 
-    mensaje: `¡Hola ${nombre}! ¿Todo bien? Esta app está hecha en TypeScript`,
-    tip: 'Agregá ?nombre=TuNombre al URL para personalizar'
+    mensaje: `Hello ${nombre}! How are you? This app is built with TypeScript`,
+    tip: 'Add ?nombre=YourName to the URL to personalize'
   };
   res.json(response);
 });
 
-// Ruta para obtener items
+// Route to get items
 app.get('/api/items', (req: Request, res: Response) => {
   const items: Item[] = [
-    { id: 1, nombre: 'Asado', categoria: 'comida' },
-    { id: 2, nombre: 'Mate', categoria: 'bebida' },
-    { id: 3, nombre: 'Dulce de leche', categoria: 'postre' },
-    { id: 4, nombre: 'Empanadas', categoria: 'comida' },
-    { id: 5, nombre: 'Fernet', categoria: 'bebida' }
+    { id: 1, nombre: 'Steak', categoria: 'food' },
+    { id: 2, nombre: 'Coffee', categoria: 'beverage' },
+    { id: 3, nombre: 'Ice Cream', categoria: 'dessert' },
+    { id: 4, nombre: 'Pizza', categoria: 'food' },
+    { id: 5, nombre: 'Tea', categoria: 'beverage' }
   ];
   res.json(items);
 });
 
-// Ruta para obtener un item específico
+// Route to get a specific item
 app.get('/api/items/:id', (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
   const items: Item[] = [
-    { id: 1, nombre: 'Asado', categoria: 'comida' },
-    { id: 2, nombre: 'Mate', categoria: 'bebida' },
-    { id: 3, nombre: 'Dulce de leche', categoria: 'postre' },
-    { id: 4, nombre: 'Empanadas', categoria: 'comida' },
-    { id: 5, nombre: 'Fernet', categoria: 'bebida' }
+    { id: 1, nombre: 'Steak', categoria: 'food' },
+    { id: 2, nombre: 'Coffee', categoria: 'beverage' },
+    { id: 3, nombre: 'Ice Cream', categoria: 'dessert' },
+    { id: 4, nombre: 'Pizza', categoria: 'food' },
+    { id: 5, nombre: 'Tea', categoria: 'beverage' }
   ];
   
   const item = items.find(i => i.id === id);
@@ -68,54 +71,65 @@ app.get('/api/items/:id', (req: Request, res: Response) => {
   if (item) {
     res.json(item);
   } else {
-    res.status(404).json({ error: 'Item no encontrado' });
+    res.status(404).json({ error: 'Item not found' });
   }
 });
 
-// Ruta para manejar métodos POST
+// Route to handle POST methods
 app.post('/api/contacto', (req: Request, res: Response) => {
   const { nombre, email, mensaje } = req.body as ContactRequest;
   
   if (!nombre || !email || !mensaje) {
-    return res.status(400).json({ error: 'Faltan campos obligatorios' });
+    return res.status(400).json({ error: 'Missing required fields' });
   }
   
-  // Aquí normalmente guardarías en una base de datos
+  // Here you would normally save to a database
   const response: ContactResponse = { 
     exito: true, 
-    mensaje: `Gracias ${nombre}, tu mensaje fue recibido. Te contactaremos a ${email} pronto.` 
+    mensaje: `Thank you ${nombre}, your message was received. We will contact you at ${email} soon.` 
   };
   
   res.json(response);
 });
 
-// Ruta de health check para Vercel
+// Health check route for Vercel
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
     language: 'TypeScript',
-    environment: process.env.NODE_ENV || 'development'
+    framework: 'Express',
+    deployment: 'Vercel'
   });
 });
 
-// Manejar rutas no existentes
-app.use((req: Request, res: Response) => {
-  res.status(404).json({ error: 'Endpoint no encontrado' });
-});
-
-// Manejo de errores
+// Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);
-  res.status(500).json({ error: 'Algo salió mal en el servidor' });
+  res.status(500).json({ 
+    error: 'Something went wrong!',
+    message: err.message 
+  });
 });
 
-// Iniciar servidor solo si no estamos en Vercel
-if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`Servidor TypeScript corriendo en puerto ${PORT}`);
+// 404 handler for undefined routes
+app.use('*', (req: Request, res: Response) => {
+  res.status(404).json({ 
+    error: 'Route not found',
+    availableRoutes: [
+      '/',
+      '/api/saludo',
+      '/api/items',
+      '/api/health'
+    ]
   });
-}
+});
 
-// Exportar la app para Vercel
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📱 API available at http://localhost:${PORT}`);
+  console.log(`🌐 Frontend available at http://localhost:${PORT}`);
+});
+
 export default app;
